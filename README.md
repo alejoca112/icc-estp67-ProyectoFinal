@@ -1,18 +1,44 @@
-## Getting Started
+# Proyecto Final: Buscador de Rutas Óptimas en Mapas Urbanos
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+**Universidad Politécnica Salesiana** **Carrera:** Computación  
+**Asignatura:** Estructura de Datos  
+**Estudiante:** Geovanny Alejandro Cabrera Tapia
 
-## Folder Structure
+---
 
-The workspace contains two folders by default, where:
+## 1. Descripción del Problema
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+El proyecto consiste en desarrollar una aplicación que modele un mapa de calles real (Las Vegas) como un grafo. El sistema permite definir intersecciones (nodos) y calles (aristas) sobre una imagen satelital para posteriormente encontrar la ruta más eficiente entre dos puntos.
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+## 2. Objetivo
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+Implementar una herramienta visual que permita:
 
-## Dependency Management
+1.  Visualizar un mapa real (Las Vegas).
+2.  Digitalizar intersecciones y conexiones manualmente.
+3.  Visualizar la ejecución de algoritmos de búsqueda (BFS y DFS).
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+## 3. Tecnologías Utilizadas
+
+- **Lenguaje:** Java
+- **Interfaz Gráfica:** Java Swing
+
+## 4. Funcionalidades Implementadas (v1.1)
+
+### A. Interfaz Adaptativa
+
+- **Pantalla Completa:** La aplicación inicia maximizada.
+- **Escalado Inteligente:** El mapa se ajusta automáticamente a la resolución del monitor del usuario.
+
+### B. Editor de Grafos
+
+1.  **Modo "Crear Nodos":** Clic en el mapa para añadir intersecciones.
+2.  **Modo "Conectar Nodos":** Clic en origen (verde) y destino para crear calles.
+
+### C. UX y Validaciones
+
+- **Cancelación:** Clic derecho para cancelar una selección.
+- **Integridad:** Bloqueo para evitar conectar un nodo consigo mismo.
+- **Cursor Interactivo:** El puntero cambia a mano al pasar sobre un nodo.
+#### Avances V1.1
+![alt text](assets/PreVisualizacion(v1.1).png)
