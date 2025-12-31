@@ -35,6 +35,7 @@ public class MainFrame extends JFrame {
 
         JButton btnLoad = new JButton("Cambiar Mapa");
         JButton btnClear = new JButton("Limpiar Todo");
+        JButton btnSave = new JButton("Guardar Grafo");
         
         btnAddNode = new JToggleButton("Crear Nodos", true);
         btnConnect = new JToggleButton("Conectar Nodos");
@@ -47,6 +48,7 @@ public class MainFrame extends JFrame {
         toolBar.addSeparator();
         toolBar.add(btnAddNode);
         toolBar.add(btnConnect);
+        toolBar.add(btnSave);
         toolBar.addSeparator();
         toolBar.add(btnClear);
 
@@ -66,10 +68,24 @@ public class MainFrame extends JFrame {
         btnAddNode.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_ADD_NODE));
         btnConnect.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_CONNECT));
         btnClear.addActionListener(e -> graphPanel.clearGraph());
+        //Boton Guardar
+        btnSave.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setSelectedFile(new File("grafo_las_vegas.txt")); //Tipico Nombre
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File archivo = fc.getSelectedFile();
+                if (graphPanel.saveGraph(archivo)) {
+                    statusLabel.setText("Grafo guardado en: " + archivo.getName());
+                    JOptionPane.showMessageDialog(this, "¡Archivo guardado correctamente!");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al guardar el archivo.");
+                }
+            }
+        });
     }
 
     private void cargarMapaPorDefecto() {
-        File archivoMapa = new File("assets/mapa.jpg"); 
+        File archivoMapa = new File("assets/mapa.jpg");
         if (archivoMapa.exists()) {
             cargarImagen(archivoMapa);
         } else {

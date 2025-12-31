@@ -5,6 +5,9 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 // CLASES AUXILIARES (NODOS Y ARISTAS)
 class NodeView {
@@ -214,5 +217,26 @@ public class GraphPanel extends JPanel {
         edges.clear();
         selectedNode = null;
         repaint();
+    }
+
+    // Metodo de Guardado(Persistencia)
+    public boolean saveGraph(File file) {
+        try (PrintWriter pw = new PrintWriter(file)) {
+            // 1. Guardar Nodos(ID,X,Y)
+            pw.println("NODES");
+            for (NodeView n : nodes) {
+                pw.println(n.id + "," + n.x + "," + n.y);
+            }
+
+            // 2. Guardar Aristas
+            pw.println("EDGES");
+            for (EdgeView e : edges) {
+                pw.println(e.nodeA.id + "," + e.nodeB.id);
+            }
+            return true; // Retorna True si guardo correctamente
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false; // Retorna False si hubo un error
+        }
     }
 }
