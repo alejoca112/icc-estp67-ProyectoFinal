@@ -113,10 +113,10 @@ Tras realizar múltiples pruebas de navegación sobre la malla y analizar los da
 ![alt text](assets/PreVisualizacion(v1.1).png)
 
 #### Simulación Algorítmica v2.0 (BFS)
-![alt text](assets/PreVisualizacion(BFS).png)
+![alt text](assets/Previsualizacion(BFS).png)
 
 #### Simulación Algorítmica v2.0 (DFS)
-![alt text](assets/PreVisualizacion(DFS).png)
+![alt text](assets/Previsualizacion(DFS).png)
 
 
 
