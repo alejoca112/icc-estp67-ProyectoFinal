@@ -93,7 +93,7 @@ public class MainFrame extends JFrame {
         btnEnd.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_SELECT_END));
 
         //btnRunBFS.addActionListener(e -> graphPanel.runAlgorithm("BFS"));
-        btnRunDFS.addActionListener(e -> graphPanel.runAlgorithm("DFS"));
+        //btnRunDFS.addActionListener(e -> graphPanel.runAlgorithm("DFS"));
 
         btnSave.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();

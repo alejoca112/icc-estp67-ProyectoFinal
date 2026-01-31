@@ -24,41 +24,8 @@ public class PathFinder {
     }
 
     public static SearchResult dfs(NodeView start, NodeView end, List<NodeView> allNodes, List<EdgeView> allEdges) {
-        long startTime = System.nanoTime();
-
-        Map<NodeView, List<NodeView>> adj = buildAdjacencyMap(allNodes, allEdges);
-        List<NodeView> visitedOrder = new ArrayList<>();
-        Map<NodeView, NodeView> parentMap = new HashMap<>();
-        Stack<NodeView> stack = new Stack<>();
-        Set<NodeView> visited = new HashSet<>();
-
-        stack.push(start);
-
-        boolean found = false;
-
-        while (!stack.isEmpty()) {
-            NodeView current = stack.pop();
-
-            if (!visited.contains(current)) {
-                visited.add(current);
-                visitedOrder.add(current);
-
-                if (current.equals(end)) {
-                    found = true;
-                    break;
-                }
-
-                for (NodeView neighbor : adj.getOrDefault(current, new ArrayList<>())) {
-                    if (!visited.contains(neighbor)) {
-                        parentMap.put(neighbor, current);
-                        stack.push(neighbor);
-                    }
-                }
-            }
-        }
-
-        long endTime = System.nanoTime();
-        return new SearchResult(visitedOrder, reconstructPath(parentMap, end, found), (endTime - startTime));
+        //Por Completar
+        return new SearchResult(new ArrayList<>(), new ArrayList<>(), 0);
     }
 
     private static List<NodeView> reconstructPath(Map<NodeView, NodeView> parentMap, NodeView end, boolean found) {

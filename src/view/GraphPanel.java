@@ -61,7 +61,7 @@ public class GraphPanel extends JPanel {
 
     public void setMapImage(BufferedImage originalImage) {
         if (originalImage != null) {
-            // 1. Obtiene el tamaño para poder colocar la imagen en escala 
+            //Obtiene el tamaño para poder colocar la imagen en escala 
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
             int targetW = screenSize.width;
             int targetH = screenSize.height;
