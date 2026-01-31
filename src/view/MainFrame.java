@@ -92,7 +92,7 @@ public class MainFrame extends JFrame {
         btnStart.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_SELECT_START));
         btnEnd.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_SELECT_END));
 
-        btnRunBFS.addActionListener(e -> graphPanel.runAlgorithm("BFS"));
+        //btnRunBFS.addActionListener(e -> graphPanel.runAlgorithm("BFS"));
         btnRunDFS.addActionListener(e -> graphPanel.runAlgorithm("DFS"));
 
         btnSave.addActionListener(e -> {

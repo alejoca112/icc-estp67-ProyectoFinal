@@ -6,7 +6,6 @@ import java.util.*;
 
 public class PathFinder {
 
-    // Clase auxiliar para devolver los resultados y el TIEMPO (Requisito PDF)
     public static class SearchResult {
         public List<NodeView> visitedOrder;
         public List<NodeView> finalPath;
@@ -20,39 +19,8 @@ public class PathFinder {
     }
 
     public static SearchResult bfs(NodeView start, NodeView end, List<NodeView> allNodes, List<EdgeView> allEdges) {
-        long startTime = System.nanoTime(); // Iniciar cronómetro
-
-        Map<NodeView, List<NodeView>> adj = buildAdjacencyMap(allNodes, allEdges);
-        List<NodeView> visitedOrder = new ArrayList<>();
-        Map<NodeView, NodeView> parentMap = new HashMap<>();
-        Queue<NodeView> queue = new LinkedList<>();
-        Set<NodeView> visited = new HashSet<>();
-
-        queue.add(start);
-        visited.add(start);
-
-        boolean found = false;
-
-        while (!queue.isEmpty()) {
-            NodeView current = queue.poll();
-            visitedOrder.add(current);
-
-            if (current.equals(end)) {
-                found = true;
-                break;
-            }
-
-            for (NodeView neighbor : adj.getOrDefault(current, new ArrayList<>())) {
-                if (!visited.contains(neighbor)) {
-                    visited.add(neighbor);
-                    parentMap.put(neighbor, current);
-                    queue.add(neighbor);
-                }
-            }
-        }
-        
-        long endTime = System.nanoTime(); // Parar cronómetro
-        return new SearchResult(visitedOrder, reconstructPath(parentMap, end, found), (endTime - startTime));
+        //Por Completar
+        return new SearchResult(new ArrayList<>(), new ArrayList<>(), 0);
     }
 
     public static SearchResult dfs(NodeView start, NodeView end, List<NodeView> allNodes, List<EdgeView> allEdges) {
