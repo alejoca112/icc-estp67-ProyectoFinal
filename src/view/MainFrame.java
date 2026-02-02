@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Scanner;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,17 +14,13 @@ public class MainFrame extends JFrame {
     private GraphPanel graphPanel;
 
     public MainFrame() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ex) {
-        }
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ex) {}
         initComponents();
-        cargarMapaPorDefecto();
+        cargarMapaPorDefecto(); 
     }
 
     private void initComponents() {
-        setTitle("Sistema de Rutas Profesional por BFS Y DFS");
-        setSize(1280, 800);
+        setTitle("Sistema de Rutas BFS Y DFS");
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -31,156 +28,178 @@ public class MainFrame extends JFrame {
         graphPanel = new GraphPanel();
         add(new JScrollPane(graphPanel), BorderLayout.CENTER);
 
-        // BARRA DE HERRAMIENTAS
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
-        toolBar.setBorder(new EmptyBorder(10, 10, 10, 10));
-        toolBar.setBackground(new Color(240, 240, 245));
+        toolBar.setBorder(new EmptyBorder(5, 5, 5, 5));
+        toolBar.setBackground(new Color(245, 245, 250));
 
-        // Creación de botones
-        JButton btnLoadImg = crearBoton("Mapa");
-        JButton btnLoadGraph = crearBoton("Cargar Grafo");
-        JButton btnSave = crearBoton("Guardar");
-        JButton btnClear = crearBoton("Limpiar");
+        
+        // Archivo
+        JButton btnLoadImg = crearBotonIcono("Mapa", "icon_mapa.png");
+        JButton btnLoadGraph = crearBotonIcono("Abrir", "icon_upload.png");
+        JButton btnSave = crearBotonIcono("Guardar", "icon_save.png");
+        JButton btnResults = crearBotonIcono("Reporte", "icon_results.png");
 
-        JToggleButton btnAdd = crearToggle("Crear Nodo");
-        JToggleButton btnConnect = crearToggle("Conectar");
+        JToggleButton btnAdd = crearToggleIcono("Nodo", "icon_add.png");
+        JToggleButton btnConnect = crearToggleIcono("Conectar", "icon_connect.png");
+        
+        // Selección de Puntos
+        JToggleButton btnStart = crearToggleIcono("Inicio", "icon_start.png");
+        JToggleButton btnEnd = crearToggleIcono("Fin", "icon_end.png");
+        
+        // Borrador
+        JToggleButton btnDelete = crearToggleIcono("Borrar", "icon_deleteNode.png");
 
-        JToggleButton btnStart = crearToggle("Inicio");
-        JToggleButton btnEnd = crearToggle("Fin");
-        JButton btnRunBFS = crearBoton("BFS");
-        JButton btnRunDFS = crearBoton("DFS");
+        JCheckBox chkDirected = new JCheckBox("Unidireccional");
+        JCheckBox chkHideEdges = new JCheckBox("Ocultar Líneas");
+        chkDirected.setOpaque(false);
+        chkHideEdges.setOpaque(false);
 
-        // Grupo de botones
+        // Algoritmos
+        JButton btnRunBFS = crearBotonIcono("BFS", "icon_run.png");
+        JButton btnRunDFS = crearBotonIcono("DFS", "icon_run.png");
+        JButton btnClear = crearBotonIcono("Limpiar", "icon_clear.png");
+
+        // AGRUPAR MODOS
         ButtonGroup group = new ButtonGroup();
-        group.add(btnAdd);
-        group.add(btnConnect);
-        group.add(btnStart);
-        group.add(btnEnd);
+        group.add(btnAdd); 
+        group.add(btnConnect); 
+        group.add(btnStart); 
+        group.add(btnEnd); 
+        group.add(btnDelete);
         btnAdd.setSelected(true);
 
-        // Añadiendo a barra
+        // --- AÑADIR A LA BARRA ---
         toolBar.add(btnLoadImg);
-        toolBar.add(Box.createHorizontalStrut(5));
         toolBar.add(btnLoadGraph);
-        toolBar.add(Box.createHorizontalStrut(5));
         toolBar.add(btnSave);
-        toolBar.addSeparator(new Dimension(20, 40));
-
+        toolBar.addSeparator();
+        toolBar.add(btnResults);
+        toolBar.addSeparator();
+        
         toolBar.add(btnAdd);
-        toolBar.add(Box.createHorizontalStrut(5));
         toolBar.add(btnConnect);
-        toolBar.addSeparator(new Dimension(20, 40));
-
+        toolBar.add(chkDirected);
+        toolBar.addSeparator();
+        
         toolBar.add(btnStart);
-        toolBar.add(Box.createHorizontalStrut(5));
         toolBar.add(btnEnd);
-        toolBar.addSeparator(new Dimension(20, 40));
-
+        toolBar.addSeparator();
+        
+        toolBar.add(btnDelete);
+        toolBar.add(chkHideEdges);
+        toolBar.addSeparator();
+        
         toolBar.add(btnRunBFS);
-        toolBar.add(Box.createHorizontalStrut(5));
         toolBar.add(btnRunDFS);
-
         toolBar.add(Box.createHorizontalGlue());
         toolBar.add(btnClear);
 
         add(toolBar, BorderLayout.NORTH);
 
-        // ACCIONES
+        // --- EVENTOS (Listeners) ---
+        
+        // Modos
         btnAdd.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_ADD_NODE));
         btnConnect.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_CONNECT));
         btnStart.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_SELECT_START));
         btnEnd.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_SELECT_END));
+        btnDelete.addActionListener(e -> graphPanel.setMode(GraphPanel.MODE_DELETE_NODE));
 
-        //btnRunBFS.addActionListener(e -> graphPanel.runAlgorithm("BFS"));
-        //btnRunDFS.addActionListener(e -> graphPanel.runAlgorithm("DFS"));
+        // Opciones
+        chkDirected.addActionListener(e -> graphPanel.setDirectedMode(chkDirected.isSelected()));
+        chkHideEdges.addActionListener(e -> graphPanel.setShowEdges(!chkHideEdges.isSelected()));
+
+        // Algoritmos y Archivos
+        btnRunBFS.addActionListener(e -> graphPanel.runAlgorithm("BFS"));
+        btnRunDFS.addActionListener(e -> graphPanel.runAlgorithm("DFS"));
+        btnResults.addActionListener(e -> mostrarResultados());
+        btnClear.addActionListener(e -> graphPanel.clearGraph());
 
         btnSave.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser();
-            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                if (graphPanel.saveGraph(fc.getSelectedFile()))
-                    JOptionPane.showMessageDialog(this, "Guardado exitoso.");
-            }
+             JFileChooser fc = new JFileChooser();
+             if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) graphPanel.saveGraph(fc.getSelectedFile());
         });
-
         btnLoadGraph.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser();
-            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                if (graphPanel.loadGraph(fc.getSelectedFile()))
-                    JOptionPane.showMessageDialog(this, "Grafo cargado correctamente.");
-                else
-                    JOptionPane.showMessageDialog(this, "Error al leer el archivo.");
-            }
+             JFileChooser fc = new JFileChooser();
+             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                 if(graphPanel.loadGraph(fc.getSelectedFile())) JOptionPane.showMessageDialog(this, "Grafo cargado.");
+             }
         });
-
         btnLoadImg.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser();
-            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
-                cargarImagen(fc.getSelectedFile());
+             JFileChooser fc = new JFileChooser();
+             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) cargarImagen(fc.getSelectedFile());
         });
-
-        btnClear.addActionListener(e -> graphPanel.clearGraph());
     }
 
-    // Metodos de estilo
-    private JButton crearBoton(String texto) {
+    private ImageIcon cargarIcono(String nombreArchivo) {
+        try {
+            File file = new File("assets/" + nombreArchivo);
+            if (!file.exists()) file = new File("src/assets/" + nombreArchivo);
+            
+            if (file.exists()) {
+                BufferedImage img = ImageIO.read(file);
+                Image scaled = img.getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaled);
+            }
+        } catch (Exception e) {}
+        return null; // Si falla, botón sin icono
+    }
+
+    private JButton crearBotonIcono(String texto, String iconoFile) {
         JButton btn = new JButton(texto);
+        btn.setIcon(cargarIcono(iconoFile));
         estilizar(btn);
         return btn;
     }
 
-    private JToggleButton crearToggle(String texto) {
+    private JToggleButton crearToggleIcono(String texto, String iconoFile) {
         JToggleButton btn = new JToggleButton(texto);
+        btn.setIcon(cargarIcono(iconoFile));
         estilizar(btn);
         return btn;
     }
 
     private void estilizar(AbstractButton btn) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        btn.setVerticalTextPosition(SwingConstants.BOTTOM);
+        btn.setHorizontalTextPosition(SwingConstants.CENTER);
         btn.setFocusPainted(false);
-        btn.setPreferredSize(new Dimension(130, 45));
         btn.setBackground(Color.WHITE);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setMargin(new Insets(2, 10, 2, 10)); // Padding
+    }
+
+    private void mostrarResultados() {
+        JTextArea textArea = new JTextArea(20, 50);
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        File file = new File("reporte_tiempos.csv");
+        if (file.exists()) {
+            try (Scanner scanner = new Scanner(file)) {
+                textArea.append("ALG | TIEMPO | PASOS | DISTANCIA\n");
+                textArea.append("----------------------------------\n");
+                while (scanner.hasNextLine()) textArea.append(scanner.nextLine().replace(",", " | ") + "\n");
+            } catch (IOException e) { textArea.setText("Error leyendo archivo."); }
+        } else { textArea.setText("Sin registros."); }
+        JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "Historial", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void cargarMapaPorDefecto() {
         File f = new File("assets/mapa.jpg");
-        if (f.exists()) {
-            cargarImagen(f);
-            return;
-        }
-
-        f = new File("src/assets/mapa.jpg");
-        if (f.exists()) {
-            cargarImagen(f);
-            return;
-        }
-
-        System.out.println("Aviso: No se encontró 'mapa.jpg' automáticamente.");
+        if(!f.exists()) f = new File("src/assets/mapa.jpg");
+        if(f.exists()) cargarImagen(f);
     }
 
     private void cargarImagen(File file) {
         try {
             BufferedImage img = ImageIO.read(file);
-            if (img != null) {
-                graphPanel.setMapImage(img);
-
-                SwingUtilities.invokeLater(() -> {
-                    this.revalidate();
-                    this.repaint();
-                });
-
-                System.out.println("Mapa cargado: " + file.getName());
-            } else {
-                JOptionPane.showMessageDialog(this, "Error: Imagen no válida.");
-            }
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Error crítico: " + ex.getMessage());
-        }
+            if(img != null) graphPanel.setMapImage(img);
+        } catch (IOException ex) {}
     }
 
     public static void main(String[] args) {
-        System.setProperty("sun.java2d.d3d", "false");
+        System.setProperty("sun.java2d.d3d", "false"); 
         SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
     }
 }

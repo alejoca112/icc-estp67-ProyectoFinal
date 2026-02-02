@@ -23,27 +23,28 @@ public class Graph {
     }
 
     public boolean addEdge(NodeView a, NodeView b, double weight, boolean bidirectional) {
-        if (a.equals(b)) return false;
+        if (a.equals(b)) return false; 
         if (!adjacencyMap.containsKey(a) || !adjacencyMap.containsKey(b)) return false;
 
-        // Verificar si ya existe conexión A -> B
-        for(EdgeView e : adjacencyMap.get(a)) {
-            if(e.nodeB.equals(b)) return false; 
+        // 1. Crear conexión A -> B
+        EdgeView edgeAB = new EdgeView(a, b, weight);
+        
+        // Evitar duplicados exactos
+        boolean exists = false;
+        for(EdgeView e : adjacencyMap.get(a)) if(e.nodeB.equals(b)) exists = true;
+        
+        if(!exists) {
+            adjacencyMap.get(a).add(edgeAB);
+            allEdges.add(edgeAB);
         }
 
-        // Crear conexión A -> B
-        EdgeView edgeAB = new EdgeView(a, b, weight);
-        adjacencyMap.get(a).add(edgeAB);
-        allEdges.add(edgeAB);
-
-        // Si es bidireccional, crear también B -> A
+        // 2. Si es bidireccional, crear también B -> A
         if (bidirectional) {
-            // Verificamos que no exista ya la inversa
-            boolean existsReverse = false;
-            for(EdgeView e : adjacencyMap.get(b)) if(e.nodeB.equals(a)) existsReverse = true;
+            EdgeView edgeBA = new EdgeView(b, a, weight);
+            boolean existsRev = false;
+            for(EdgeView e : adjacencyMap.get(b)) if(e.nodeB.equals(a)) existsRev = true;
             
-            if (!existsReverse) {
-                EdgeView edgeBA = new EdgeView(b, a, weight);
+            if (!existsRev) {
                 adjacencyMap.get(b).add(edgeBA);
                 allEdges.add(edgeBA); 
             }
@@ -53,15 +54,11 @@ public class Graph {
 
     public void removeNode(NodeView nodeToRemove) {
         if (nodeToRemove == null) return;
-
         for (NodeView neighbor : adjacencyMap.keySet()) {
-            List<EdgeView> edges = adjacencyMap.get(neighbor);
-            edges.removeIf(e -> e.nodeB.equals(nodeToRemove));
+            adjacencyMap.get(neighbor).removeIf(e -> e.nodeB.equals(nodeToRemove));
         }
-
         adjacencyMap.remove(nodeToRemove);
         nodeList.remove(nodeToRemove);
-
         allEdges.removeIf(e -> e.nodeA.equals(nodeToRemove) || e.nodeB.equals(nodeToRemove));
     }
     
@@ -71,12 +68,9 @@ public class Graph {
     }
 
     public void clear() {
-        nodeList.clear();
-        adjacencyMap.clear();
-        allEdges.clear();
+        nodeList.clear(); adjacencyMap.clear(); allEdges.clear();
     }
 
-    // Getters
     public List<NodeView> getNodes() { return nodeList; }
     public List<EdgeView> getAllVisualEdges() { return allEdges; }
     public Map<NodeView, List<EdgeView>> getAdjacencyMap() { return adjacencyMap; }
@@ -85,9 +79,7 @@ public class Graph {
         List<NodeView> neighbors = new ArrayList<>();
         List<EdgeView> edges = adjacencyMap.get(node);
         if (edges != null) {
-            for (EdgeView e : edges) {
-                neighbors.add(e.nodeB);
-            }
+            for (EdgeView e : edges) neighbors.add(e.nodeB);
         }
         return neighbors;
     }

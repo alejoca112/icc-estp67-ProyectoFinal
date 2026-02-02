@@ -1,7 +1,10 @@
 package view;
 
 import logic.PathFinder;
-import model.Graph; // Importamos el modelo Graph
+import model.Graph;
+import view.EdgeView;
+import view.NodeView;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -13,13 +16,18 @@ import java.text.DecimalFormat;
 
 public class GraphPanel extends JPanel {
     private BufferedImage mapImage;
-    // REEMPLAZO: Usamos el objeto Graph en lugar de listas sueltas
     private Graph graph;
 
+    // --- MODOS DE EDICIÓN (RECUPERADOS) ---
     public static final int MODE_ADD_NODE = 0;
     public static final int MODE_CONNECT = 1;
-    // Eliminamos modos de seleccion de inicio/fin porque ahora es con clic derecho
+    public static final int MODE_SELECT_START = 2;
+    public static final int MODE_SELECT_END = 3;
+    public static final int MODE_DELETE_NODE = 4;  // Borrador
+    
     private int currentMode = MODE_ADD_NODE;
+    private boolean isDirectedMode = false; // Checkbox Unidireccional
+    private boolean showEdges = true;       // Checkbox Ocultar Conexiones
 
     private NodeView selectedNodeForConnection = null;
     private NodeView startNode = null;
@@ -30,12 +38,6 @@ public class GraphPanel extends JPanel {
     private List<NodeView> visitedNodes;
     private List<NodeView> finalPath;
 
-    // Menús contextuales
-    private JPopupMenu nodePopupMenu;
-    private JPopupMenu edgePopupMenu;
-    private NodeView popupNodeTarget;
-    private EdgeView popupEdgeTarget;
-
     public GraphPanel() {
         this.graph = new Graph();
         this.visitedNodes = new ArrayList<>();
@@ -45,15 +47,11 @@ public class GraphPanel extends JPanel {
         this.setBackground(Color.DARK_GRAY);
         this.setPreferredSize(new Dimension(1200, 800));
 
-        setupPopupMenus();
-
         animationTimer = new Timer(40, e -> stepAnimation());
 
         MouseAdapter ma = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) { handleMouseAction(e); }
-            @Override
-            public void mouseReleased(MouseEvent e) { handleMouseAction(e); }
         };
         this.addMouseListener(ma);
         this.addMouseMotionListener(new MouseMotionAdapter() {
@@ -62,106 +60,101 @@ public class GraphPanel extends JPanel {
         });
     }
 
-    private void setupPopupMenus() {
-        // --- Menú para Nodos ---
-        nodePopupMenu = new JPopupMenu();
-        JMenuItem itemStart = new JMenuItem("Establecer como INICIO");
-        JMenuItem itemEnd = new JMenuItem("Establecer como FIN");
-        JMenuItem itemDelete = new JMenuItem("Eliminar Nodo");
-
-        itemStart.addActionListener(e -> { startNode = popupNodeTarget; repaint(); });
-        itemEnd.addActionListener(e -> { endNode = popupNodeTarget; repaint(); });
-        itemDelete.addActionListener(e -> deleteNode(popupNodeTarget));
-
-        nodePopupMenu.add(itemStart);
-        nodePopupMenu.add(itemEnd);
-        nodePopupMenu.addSeparator();
-        nodePopupMenu.add(itemDelete);
-
-        // --- Menú para Aristas ---
-        edgePopupMenu = new JPopupMenu();
-        JMenuItem itemWeight = new JMenuItem("Editar Peso/Distancia");
-        itemWeight.addActionListener(e -> editEdgeWeight(popupEdgeTarget));
-        edgePopupMenu.add(itemWeight);
+    // --- SETTERS ---
+    public void setMode(int mode) { 
+        this.currentMode = mode; 
+        this.selectedNodeForConnection = null; 
+        repaint(); 
     }
-
-    private void handleMouseAction(MouseEvent e) {
-        if (e.isPopupTrigger()) {
-            handleRightClick(e.getX(), e.getY());
-        } else if (e.getID() == MouseEvent.MOUSE_PRESSED && SwingUtilities.isLeftMouseButton(e)) {
-            handleLeftClick(e.getX(), e.getY());
-        }
-        
-    }
-    private void handleRightClick(int x, int y) {
-        NodeView clickedNode = getClickedNode(x, y);
-        if (clickedNode != null) {
-            popupNodeTarget = clickedNode;
-            nodePopupMenu.show(e.getComponent(), x, y);
-            return;
-        }
-        EdgeView clickedEdge = getClickedEdge(x, y);
-        if (clickedEdge != null) {
-            popupEdgeTarget = clickedEdge;
-            edgePopupMenu.show(e.getComponent(), x, y);
-            return;
-        }
-        cancelSelection();
-    }
-
     
-
-    private void handleLeftClick(int x, int y) {
-        NodeView clicked = getClickedNode(x, y);
-        switch (currentMode) {
-            case MODE_ADD_NODE:
-                if (clicked == null) {
-                    graph.addNode(new NodeView(x, y, "N" + (graph.getNodes().size() + 1)));
-                    repaint();
-                }
-                break;
-            case MODE_CONNECT:
-                if (clicked != null) {
-                    if (selectedNodeForConnection == null) selectedNodeForConnection = clicked;
-                    else {
-                        graph.addEdge(selectedNodeForConnection, clicked, 1.0);
-                        selectedNodeForConnection = null;
-                    }
-                    repaint();
-                }
-                break;
-        }
+    public void setDirectedMode(boolean isDirected) {
+        this.isDirectedMode = isDirected;
     }
 
-    // --- Funciones del Menú Contextual ---
-    private void deleteNode(NodeView target) {
-        if(target == null) return;
-        if(startNode == target) startNode = null;
-        if(endNode == target) endNode = null;
-        graph.removeNode(target);
+    public void setShowEdges(boolean show) {
+        this.showEdges = show;
         repaint();
     }
 
-    private void editEdgeWeight(EdgeView target) {
-        if(target == null) return;
-        String input = JOptionPane.showInputDialog(this, "Ingrese nueva distancia para la conexión:", target.weight);
-        try {
-            double newWeight = Double.parseDouble(input);
-            // Actualizar el peso en ambas direcciones (grafo no dirigido)
-            target.weight = newWeight;
-            for(EdgeView reverse : graph.getAdjacencyMap().get(target.nodeB)) {
-                if(reverse.nodeB.equals(target.nodeA)) {
-                    reverse.weight = newWeight;
+    private void handleMouseAction(MouseEvent e) {
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            NodeView clicked = getClickedNode(e.getX(), e.getY());
+            
+            switch (currentMode) {
+                case MODE_ADD_NODE:
+                    if (clicked == null) {
+                        graph.addNode(new NodeView(e.getX(), e.getY(), "N" + (graph.getNodes().size() + 1)));
+                        repaint();
+                    }
                     break;
-                }
+                    
+                case MODE_CONNECT:
+                    if (clicked != null) {
+                        if (selectedNodeForConnection == null) selectedNodeForConnection = clicked;
+                        else {
+                            boolean bidirectional = !isDirectedMode; 
+                            graph.addEdge(selectedNodeForConnection, clicked, 1.0, bidirectional);
+                            selectedNodeForConnection = null;
+                        }
+                        repaint();
+                    }
+                    break;
+
+                case MODE_SELECT_START:
+                    if (clicked != null) {
+                        startNode = clicked;
+                        repaint();
+                    }
+                    break;
+
+                case MODE_SELECT_END:
+                    if (clicked != null) {
+                        endNode = clicked;
+                        repaint();
+                    }
+                    break;
+                    
+                case MODE_DELETE_NODE:
+                    if (clicked != null) {
+                        if(startNode == clicked) startNode = null;
+                        if(endNode == clicked) endNode = null;
+                        graph.removeNode(clicked);
+                        repaint();
+                    }
+                    break;
             }
-            repaint();
-        } catch (NumberFormatException | NullPointerException ex) {
-             // Ignorar entrada inválida
+        }
+        else if (SwingUtilities.isRightMouseButton(e)) {
+            EdgeView clickedEdge = getClickedEdge(e.getX(), e.getY());
+            if (clickedEdge != null) {
+                JPopupMenu menu = new JPopupMenu();
+                JMenuItem item = new JMenuItem("Editar Distancia/Peso");
+                item.addActionListener(ev -> editEdgeWeight(clickedEdge));
+                menu.add(item);
+                menu.show(this, e.getX(), e.getY());
+            } else {
+                // Cancelar selección si se hace clic derecho en el vacío
+                selectedNodeForConnection = null;
+                repaint();
+            }
         }
     }
 
-    // --- PINTADO ---
+    private void editEdgeWeight(EdgeView target) {
+        String input = JOptionPane.showInputDialog(this, "Ingrese distancia:", target.weight);
+        try {
+            double val = Double.parseDouble(input);
+            target.weight = val;
+            // Actualizar inverso si existe
+            for(EdgeView e : graph.getAllVisualEdges()) {
+                if(e.nodeA == target.nodeB && e.nodeB == target.nodeA) {
+                    e.weight = val;
+                }
+            }
+            repaint();
+        } catch(Exception ex) {}
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -170,40 +163,37 @@ public class GraphPanel extends JPanel {
 
         if (mapImage != null) g2.drawImage(mapImage, 0, 0, this);
 
-        // 1. Dibujar Aristas y Pesos
-        g2.setStroke(new BasicStroke(3));
-        g2.setColor(Color.BLACK);
-        g2.setFont(new Font("Arial", Font.BOLD, 11));
-        DecimalFormat df = new DecimalFormat("#.#");
+        // 1. Dibujar Aristas
+        if (showEdges) {
+            g2.setStroke(new BasicStroke(2));
+            g2.setFont(new Font("Arial", Font.BOLD, 11));
+            DecimalFormat df = new DecimalFormat("#.#");
 
-        for (EdgeView e : graph.getAllVisualEdges()) {
-            g2.setColor(Color.BLACK);
-            g2.setStroke(new BasicStroke(3));
-            g2.drawLine(e.nodeA.x, e.nodeA.y, e.nodeB.x, e.nodeB.y);
-            
-            // Dibujar peso en el centro de la arista
-            int midX = (e.nodeA.x + e.nodeB.x) / 2;
-            int midY = (e.nodeA.y + e.nodeB.y) / 2;
-            g2.setColor(Color.BLUE);
-            g2.drawString(df.format(e.weight), midX, midY);
-        }
-
-        // 2. Dibujar Ruta Final
-        if (!animationQueue.isEmpty() || !visitedNodes.isEmpty()) {
-            if (!animationTimer.isRunning() && !finalPath.isEmpty()) {
-                 g2.setStroke(new BasicStroke(6));
-                 g2.setColor(new Color(255, 0, 50));
-                 for (int i = 0; i < finalPath.size() - 1; i++) {
-                     g2.drawLine(finalPath.get(i).x, finalPath.get(i).y, finalPath.get(i+1).x, finalPath.get(i+1).y);
-                 }
+            for (EdgeView e : graph.getAllVisualEdges()) {
+                g2.setColor(Color.BLACK);
+                drawArrowLine(g2, e.nodeA.x, e.nodeA.y, e.nodeB.x, e.nodeB.y, 15, 5);
+                
+                // Peso
+                int midX = (e.nodeA.x + e.nodeB.x) / 2;
+                int midY = (e.nodeA.y + e.nodeB.y) / 2;
+                g2.setColor(Color.BLUE);
+                g2.drawString(df.format(e.weight), midX, midY - 5);
             }
         }
 
-        // 3. Dibujar Nodos
+        // 2. Ruta Final
+        if (!finalPath.isEmpty() && !animationTimer.isRunning()) {
+            g2.setStroke(new BasicStroke(5));
+            g2.setColor(new Color(255, 0, 50));
+            for (int i = 0; i < finalPath.size() - 1; i++) {
+                g2.drawLine(finalPath.get(i).x, finalPath.get(i).y, finalPath.get(i+1).x, finalPath.get(i+1).y);
+            }
+        }
+
+        // 3. Nodos
         for (NodeView n : graph.getNodes()) {
             if (n == startNode) g2.setColor(Color.GREEN);
             else if (n == endNode) g2.setColor(Color.MAGENTA);
-            else if (finalPath.contains(n) && !animationTimer.isRunning()) g2.setColor(Color.RED);
             else if (visitedNodes.contains(n)) g2.setColor(Color.ORANGE);
             else if (n == selectedNodeForConnection) g2.setColor(Color.CYAN);
             else g2.setColor(Color.BLUE);
@@ -213,78 +203,70 @@ public class GraphPanel extends JPanel {
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2));
             g2.drawOval(n.x - r, n.y - r, r * 2, r * 2);
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            g2.setColor(Color.BLACK);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
             g2.drawString(n.id, n.x - 5, n.y + 5);
         }
         
-        // Panel Info
-        drawInfoPanel(g2);
-    }
-
-    private void drawInfoPanel(Graphics2D g2) {
-        g2.setColor(new Color(0, 0, 0, 180));
-        g2.fillRoundRect(10, 10, 550, 40, 20, 20);
+        // Info Panel
+        g2.setColor(new Color(0,0,0,180));
+        g2.fillRoundRect(10, 10, 400, 30, 20, 20);
         g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        String txt = "Modo: " + (currentMode == MODE_ADD_NODE ? "Crear" : "Conectar") + 
-                     " (Clic Der. para opciones)";
-        if(startNode != null) txt += " | Inicio: " + startNode.id;
-        if(endNode != null) txt += " | Fin: " + endNode.id;
-        g2.drawString(txt, 25, 36);
+        g2.drawString("Modo: " + getModeString(), 20, 30);
+    }
+    
+    private String getModeString() {
+        switch(currentMode) {
+            case MODE_ADD_NODE: return "Crear Nodos";
+            case MODE_CONNECT: return "Conectar " + (isDirectedMode ? "(Uni)" : "(Bi)");
+            case MODE_SELECT_START: return "Seleccionar INICIO";
+            case MODE_SELECT_END: return "Seleccionar FIN";
+            case MODE_DELETE_NODE: return "BORRADOR";
+            default: return "";
+        }
     }
 
-    // --- Ejecución y Utilidades ---
+    private void drawArrowLine(Graphics2D g, int x1, int y1, int x2, int y2, int d, int h) {
+        int dx = x2 - x1, dy = y2 - y1;
+        double D = Math.sqrt(dx * dx + dy * dy);
+        double xm = D - d, xn = xm, ym = h, yn = -h, x;
+        double sin = dy / D, cos = dx / D;
+        x = xm * cos - ym * sin + x1;
+        ym = xm * sin + ym * cos + y1;
+        xm = x;
+        x = xn * cos - yn * sin + x1;
+        yn = xn * sin + yn * cos + y1;
+        xn = x;
+        int[] xpoints = {x2, (int) xm, (int) xn};
+        int[] ypoints = {y2, (int) ym, (int) yn};
+        g.drawLine(x1, y1, x2, y2);
+        g.fillPolygon(xpoints, ypoints, 3);
+    }
+
+    // --- Algoritmos y Utilidades ---
     public void runAlgorithm(String type) {
         if (startNode == null || endNode == null) {
-            JOptionPane.showMessageDialog(this, "Usa click derecho en los nodos para definir Inicio y Fin.");
-            return;
+            JOptionPane.showMessageDialog(this, "Selecciona Inicio y Fin usando los botones."); return;
         }
         visitedNodes.clear(); finalPath.clear(); repaint();
-
-        PathFinder.SearchResult result = type.equals("BFS") ? 
-            PathFinder.bfs(startNode, endNode, graph) : 
-            PathFinder.dfs(startNode, endNode, graph);
-
-        DecimalFormat df = new DecimalFormat("#.##");
-        logExecution(type, result.executionTime, result.finalPath.size(), df.format(result.totalDistance));
+        PathFinder.SearchResult result = type.equals("BFS") ? PathFinder.bfs(startNode, endNode, graph) : PathFinder.dfs(startNode, endNode, graph);
+        logExecution(type, result.executionTime, result.finalPath.size(), String.format("%.2f", result.totalDistance));
         animationQueue = result.visitedOrder;
-        finalPath = result.finalPath; 
-        
-        if (animationQueue.isEmpty() && finalPath.isEmpty()) {
-             JOptionPane.showMessageDialog(this, "No existe ruta.");
-             return;
-        }
-        animationTimer.start();
+        finalPath = result.finalPath;
+        if(animationQueue.isEmpty()) JOptionPane.showMessageDialog(this, "No hay ruta.");
+        else animationTimer.start();
     }
-
+    
     private void stepAnimation() {
-        if (animationQueue != null && !animationQueue.isEmpty()) {
-            visitedNodes.add(animationQueue.remove(0));
-            repaint();
-        } else {
-            animationTimer.stop();
-            repaint(); 
-            if(!finalPath.isEmpty()) {
-                DecimalFormat df = new DecimalFormat("#.##");
-                 double totalDist = PathFinder.bfs(startNode, endNode, graph).totalDistance; // Recalcular rápido
-                 JOptionPane.showMessageDialog(this, "Ruta encontrada!\nDistancia Total: " + df.format(totalDist));
-            }
-        }
-    }
-
-    // --- Helpers de detección y persistencia ---
-    private NodeView getClickedNode(int x, int y) {
-        for (NodeView n : graph.getNodes()) if (n.isClicked(x, y)) return n;
-        return null;
+        if (!animationQueue.isEmpty()) { visitedNodes.add(animationQueue.remove(0)); repaint(); }
+        else { animationTimer.stop(); repaint(); }
     }
     
-    private EdgeView getClickedEdge(int x, int y) {
-        for (EdgeView e : graph.getAllVisualEdges()) if (e.isClicked(x, y)) return e;
-        return null;
+    private void logExecution(String alg, long timeNs, int steps, String dist) {
+        try (FileWriter fw = new FileWriter("reporte_tiempos.csv", true); PrintWriter pw = new PrintWriter(fw)) {
+            pw.println(alg + "," + timeNs + "," + steps + "," + dist);
+        } catch (IOException e) {}
     }
-    
-    public void setMode(int mode) { this.currentMode = mode; selectedNodeForConnection = null; repaint(); }
-    public void clearGraph() { graph.clear(); startNode=null; endNode=null; visitedNodes.clear(); finalPath.clear(); repaint(); }
 
     public void setMapImage(BufferedImage img) { 
         if (img == null) return;
@@ -298,18 +280,15 @@ public class GraphPanel extends JPanel {
         this.setPreferredSize(screenSize);
         revalidate(); repaint();
     }
-
     public boolean saveGraph(File file) {  
          try (PrintWriter pw = new PrintWriter(file)) {
             pw.println("NODES");
             for (NodeView n : graph.getNodes()) pw.println(n.id + "," + n.x + "," + n.y);
             pw.println("EDGES");
-            // Guardar con peso
             for (EdgeView e : graph.getAllVisualEdges()) pw.println(e.nodeA.id + "," + e.nodeB.id + "," + e.weight);
             return true;
         } catch (IOException e) { return false; }
     }
-
     public boolean loadGraph(File file) {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             clearGraph();
@@ -327,24 +306,15 @@ public class GraphPanel extends JPanel {
                         NodeView nA = graph.getNodeById(parts[0]);
                         NodeView nB = graph.getNodeById(parts[1]);
                         double w = parts.length > 2 ? Double.parseDouble(parts[2]) : 1.0;
-                        if (nA != null && nB != null) graph.addEdge(nA, nB, w);
+                        if (nA != null && nB != null) graph.addEdge(nA, nB, w, true);
                     }
                 }
             }
             repaint(); return true;
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
-
-    private void logExecution(String alg, long timeNs, int steps, String dist) {
-        try (FileWriter fw = new FileWriter("reporte_tiempos.csv", true);
-             PrintWriter pw = new PrintWriter(fw)) {
-            pw.println(alg + "," + timeNs + "ns," + steps + " pasos, Distancia:" + dist);
-        } catch (IOException e) { }
-    }
-    private void handleMouseMove(int x, int y) {
-        boolean overNode = getClickedNode(x, y) != null;
-        boolean overEdge = getClickedEdge(x, y) != null;
-        setCursor((overNode || overEdge) ? new Cursor(Cursor.HAND_CURSOR) : new Cursor(Cursor.DEFAULT_CURSOR));
-    }
-    private void cancelSelection() { selectedNodeForConnection = null; repaint(); }
+    public void clearGraph() { graph.clear(); startNode=null; endNode=null; visitedNodes.clear(); finalPath.clear(); repaint(); }
+    private NodeView getClickedNode(int x, int y) { for(NodeView n : graph.getNodes()) if(n.isClicked(x, y)) return n; return null; }
+    private EdgeView getClickedEdge(int x, int y) { for(EdgeView e : graph.getAllVisualEdges()) if(e.isClicked(x, y)) return e; return null; }
+    private void handleMouseMove(int x, int y) { setCursor(getClickedNode(x,y)!=null ? new Cursor(Cursor.HAND_CURSOR) : new Cursor(Cursor.DEFAULT_CURSOR)); }
 }
