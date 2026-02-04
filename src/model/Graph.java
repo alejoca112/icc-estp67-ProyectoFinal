@@ -1,9 +1,9 @@
 package model;
 
+import java.util.*;
 import view.EdgeView;
 import view.NodeView;
-import java.util.*;
-
+//Usando grafos para los Nodos
 public class Graph {
     private List<NodeView> nodeList;
     private Map<NodeView, List<EdgeView>> adjacencyMap;
